@@ -69,7 +69,6 @@ function App() {
     try {
       // TODO: 나중에 여기에서 실제 백엔드 /api/chat 호출
       // 지금은 더미로 1.5초 뒤에 응답 추가
-
       await new Promise<void>((resolve) => {
         const id = window.setTimeout(() => {
           setMessages((prev) => [
@@ -232,52 +231,85 @@ function App() {
       )}
 
       {/* ===== 메인 영역 ===== */}
-      <main className={`app-main ${hasMessages ? 'has-messages' : ''}`}>
-        {/* 메시지 리스트 */}
-        {hasMessages && (
-          <section className="chat-list">
-            {messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`chat-bubble ${
-                  msg.role === 'user' ? 'user' : 'assistant'
-                }`}
-              >
-                {msg.text}
+      {/* hasMessages 여부에 따라 레이아웃 변경 */}
+      <main className={`app-main ${hasMessages ? 'chat-mode' : ''}`}>
+        {hasMessages ? (
+          <div className="chat-layout">
+            {/* 메시지 리스트 */}
+            <section className="chat-messages">
+              {messages.map((msg) => (
+                <div
+                  key={msg.id}
+                  className={`chat-message ${msg.role === 'user'
+                    ? 'chat-message-user'
+                    : 'chat-message-assistant'
+                    }`}
+                >
+                  <div className="chat-message-bubble">{msg.text}</div>
+                </div>
+              ))}
+              <div ref={messagesEndRef} />
+            </section>
+
+            {/* 아래 입력창 */}
+            <form
+              className="chat-input chat-input-bottom"
+              onSubmit={handleSubmit}
+            >
+              <input
+                type="text"
+                placeholder="Cine Mind 영화 관련 정보 챗봇입니다."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                disabled={isLoading} // 로딩 중엔 입력 비활성화
+              />
+
+              {isLoading ? (
+                <div className="chat-actions">
+                  <div className="spinner" />
+                  <button
+                    type="button"
+                    className="icon-button stop-button"
+                    onClick={handleStopResponse}
+                  >
+                    <span className="icon">■</span>
+                  </button>
+                </div>
+              ) : (
+                <button type="submit" className="icon-button send-button">
+                  <span className="icon">▶</span>
+                </button>
+              )}
+            </form>
+          </div>
+        ) : (
+          // 아직 메시지가 없을 때: 가운데에 입력창만
+          <form className="chat-input" onSubmit={handleSubmit}>
+            <input
+              type="text"
+              placeholder="Cine Mind 영화 관련 정보 챗봇입니다."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              disabled={isLoading}
+            />
+            {isLoading ? (
+              <div className="chat-actions">
+                <div className="spinner" />
+                <button
+                  type="button"
+                  className="icon-button stop-button"
+                  onClick={handleStopResponse}
+                >
+                  <span className="icon">■</span>
+                </button>
               </div>
-            ))}
-            <div ref={messagesEndRef} />
-          </section>
-        )}
-
-        {/* 입력창 */}
-        <form className="chat-input" onSubmit={handleSubmit}>
-          <input
-            type="text"
-            placeholder="Cine Mind 영화 관련 정보 챗봇입니다."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            disabled={isLoading} // 로딩 중엔 입력 비활성화
-          />
-
-          {/* 로딩 중일 때만 스피너 + 중지 버튼 노출 */}
-          {isLoading ? (
-            <div className="chat-actions">
-              <div className="spinner" />
-              <button
-                type="button"
-                className="stop-button"
-                onClick={handleStopResponse}
-              >
-                ■
+            ) : (
+              <button type="submit" className="icon-button send-button">
+                <span className="icon">▶</span>
               </button>
-            </div>
-          ) : (
-            <button type="submit" className="send-button">
-              ▶
-            </button>
-          )}
-        </form>
+            )}
+          </form>
+        )}
       </main>
     </div>
   )
