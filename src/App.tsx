@@ -25,6 +25,11 @@ function App() {
   // 스크롤을 맨 아래로 내리기 위한 ref
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
 
+  // 응답 로딩 상태
+  const [isLoading, setIsLoading] = useState(false)
+  // 더미 LLM 응답용 setTimeout id 저장 (응답 중지할 때 취소용)
+  const pendingTimeoutRef = useRef<number | null>(null)
+
   const hasMessages = messages.length > 0
 
   // 메시지가 추가될 때마다 자동으로 맨 아래로 스크롤
@@ -35,13 +40,14 @@ function App() {
   }, [messages])
 
   // 채팅 입력 제출
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!query.trim()) return
+    if (!query.trim() || isLoading) return // 이미 로딩 중이면 무시
 
     const userText = query.trim()
+    setQuery('')
 
-    // 1) 사용자 메시지 추가
+    // 사용자 메시지 추가
     setMessages((prev) => [
       ...prev,
       {
@@ -51,20 +57,51 @@ function App() {
       },
     ])
 
-    setQuery('')
+    // 로딩 시작
+    setIsLoading(true)
 
-    // 2) 나중에 여기서 백엔드 /api/chat 호출할 예정
-    // 지금은 프론트 개발용으로 더미 응답만 추가
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now() + 1,
-          role: 'assistant',
-          text: `LLM 응답 예시: "${userText}" 에 대한 답변입니다.`,
-        },
-      ])
-    }, 500)
+    // 기존에 남아있던 타이머가 있다면 정리
+    if (pendingTimeoutRef.current !== null) {
+      window.clearTimeout(pendingTimeoutRef.current)
+      pendingTimeoutRef.current = null
+    }
+
+    try {
+      // TODO: 나중에 여기에서 실제 백엔드 /api/chat 호출
+      // 지금은 더미로 1.5초 뒤에 응답 추가
+      await new Promise<void>((resolve) => {
+        const id = window.setTimeout(() => {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: Date.now(),
+              role: 'assistant',
+              text: `LLM 응답 예시: "${userText}" 에 대한 답변입니다.`,
+            },
+          ])
+          pendingTimeoutRef.current = null
+          resolve()
+        }, 1500)
+
+        pendingTimeoutRef.current = id
+      })
+    } catch (err) {
+      console.error('요청 중 에러 발생:', err)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // 응답 중지 버튼 핸들러
+  const handleStopResponse = () => {
+    if (!isLoading) return
+
+    if (pendingTimeoutRef.current !== null) {
+      window.clearTimeout(pendingTimeoutRef.current)
+      pendingTimeoutRef.current = null
+    }
+
+    setIsLoading(false)
   }
 
   // ... 메뉴 > 로그인 클릭
@@ -194,53 +231,84 @@ function App() {
       )}
 
       {/* ===== 메인 영역 ===== */}
-      {/* hasMessages가 false면: 처음 와이어프레임처럼 가운데에 입력창만 보이게 */}
-      {/* hasMessages가 true면: 3번째 와이어프레임처럼 위에 대화, 아래에 입력창 */}
+      {/* hasMessages 여부에 따라 레이아웃 변경 */}
       <main className={`app-main ${hasMessages ? 'chat-mode' : ''}`}>
-        {!hasMessages ? (
-          // 1) 초기 화면: 가운데 입력창만
-          <form className="chat-input" onSubmit={handleSubmit}>
-            <input
-              type="text"
-              placeholder="Cine Mind 영화 관련 정보 챗봇입니다."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-            <button type="submit" className="send-button">
-              ▶
-            </button>
-          </form>
-        ) : (
-          // 2) 채팅 모드: 위에 대화 내역, 아래에 입력창
+        {hasMessages ? (
           <div className="chat-layout">
-            <div className="chat-messages">
+            {/* 메시지 리스트 */}
+            <section className="chat-messages">
               {messages.map((msg) => (
                 <div
                   key={msg.id}
-                  className={`chat-message chat-message-${msg.role}`}
+                  className={`chat-message ${msg.role === 'user'
+                    ? 'chat-message-user'
+                    : 'chat-message-assistant'
+                    }`}
                 >
-                  {/* 나중에 여기 timestamp도 같이 렌더링해도 됨 */}
                   <div className="chat-message-bubble">{msg.text}</div>
                 </div>
               ))}
               <div ref={messagesEndRef} />
-            </div>
+            </section>
 
+            {/* 아래 입력창 */}
             <form
               className="chat-input chat-input-bottom"
               onSubmit={handleSubmit}
             >
               <input
                 type="text"
-                placeholder="메시지를 입력하세요."
+                placeholder="Cine Mind 영화 관련 정보 챗봇입니다."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
+                disabled={isLoading} // 로딩 중엔 입력 비활성화
               />
-              <button type="submit" className="send-button">
-                ▶
-              </button>
+
+              {isLoading ? (
+                <div className="chat-actions">
+                  <div className="spinner" />
+                  <button
+                    type="button"
+                    className="icon-button stop-button"
+                    onClick={handleStopResponse}
+                  >
+                    <span className="icon">■</span>
+                  </button>
+                </div>
+              ) : (
+                <button type="submit" className="icon-button send-button">
+                  <span className="icon">▶</span>
+                </button>
+              )}
             </form>
           </div>
+        ) : (
+          // 아직 메시지가 없을 때: 가운데에 입력창만
+          <form className="chat-input" onSubmit={handleSubmit}>
+            <input
+              type="text"
+              placeholder="Cine Mind 영화 관련 정보 챗봇입니다."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              disabled={isLoading}
+            />
+            {isLoading ? (
+              <div className="chat-actions">
+                <div className="spinner" />
+                <button
+                  type="button"
+                  className="icon-button stop-button"
+                  onClick={handleStopResponse}
+                >
+                  <span className="icon">■</span>
+                </button>
+              </div>
+            ) : (
+              <button type="submit" className="icon-button send-button">
+                <span className="icon">▶</span>
+              </button>
+            )}
+          </form>
         )}
       </main>
     </div>
