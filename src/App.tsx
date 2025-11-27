@@ -7,6 +7,8 @@ import { ChatInput } from './components/ChatInput'
 import { ConfirmModal } from './components/ConfirmModal'
 import { SignUpModal } from './components/SignUpModal'
 import type { ChatMessage } from './types/chat'
+import { signin, signup } from './api/auth'
+import { sendChat } from './api/chat'
 
 function App() {
   const [query, setQuery] = useState('')
@@ -40,6 +42,12 @@ function App() {
     }
   }, [messages])
 
+  // 게스트용 sessionId
+  const [sessionId] = useState(() => {
+    // 비로그인 게스트용 임시 아이디
+    return 'guest-' + crypto.randomUUID()
+  })
+
   // 채팅 제출
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -55,6 +63,26 @@ function App() {
     ])
 
     setIsLoading(true)
+
+    try {
+      const res = await sendChat(
+        {
+          userQuery: userText,
+          sessionId: isLoggedIn ? undefined : sessionId,
+        },
+        token ?? undefined // 로그인 유저면 JWT 전달
+      )
+
+      setMessages((prev) => [
+        ...prev,
+        { id: Date.now() + 1, role: 'assistant', text: res.answer },
+      ])
+    } catch (err) {
+      console.error(err)
+      alert('챗봇 요청 실패: ' + (err as Error).message)
+    } finally {
+      setIsLoading(false)
+    }
 
     // 기존 타이머 있으면 정리
     if (pendingTimeoutRef.current !== null) {
@@ -98,47 +126,52 @@ function App() {
     setIsLoading(false)
   }
 
+  const [token, setToken] = useState<string | null>(
+    () => localStorage.getItem('token')
+  )
+
   // 로그인 제출
-  const handleLoginSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleLoginSubmit = async(e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
-    if (!email.trim() || !password.trim()) {
-      console.log('이메일/비밀번호 입력 필요')
-      return
+    if (!email.trim() || !password.trim()) return
+    
+    try {
+      const res = await signin({ email, password })
+      setToken(res.bearerToken)
+      localStorage.setItem('token', res.bearerToken)
+      setIsLoggedIn(true)
+      handleCloseLoginModal()
+    } catch (err) {
+      console.error(err)
+      alert('로그인 실패: ' + (err as Error).message)
     }
-
-    console.log('로그인 시도:', { email, password })
-    // TODO: /api/auth/login + JWT 저장
-    setIsLoggedIn(true)
-    handleCloseLoginModal()
   }
 
   // 회원가입 제출
-  const handleSignUpSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSignUpSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
-    if (
-      !signUpEmail.trim() ||
-      !signUpPassword.trim() ||
-      !signUpPasswordConfirm.trim()
-    ) {
-      console.log('이메일/비밀번호/비밀번호 확인을 모두 입력해야 합니다.')
-      return
-    }
-
+    if (!signUpEmail.trim() || !signUpPassword.trim()) return
     if (signUpPassword !== signUpPasswordConfirm) {
-      console.log('비밀번호와 비밀번호 확인이 일치하지 않습니다.')
+      alert('비밀번호 확인이 일치하지 않습니다.')
       return
     }
 
-    console.log('회원가입 시도:', {
-      email: signUpEmail,
-      password: signUpPassword,
-    })
-    // TODO: /api/auth/signup 호출 후 성공 시 처리
-
-    // 일단 모달만 닫고 입력값 초기화
-    handleCloseSignUpModal()
+    try {
+      const res = await signup({
+        email: signUpEmail,
+        password: signUpPassword,
+      })
+      // 회원가입 후 자동 로그인 처리
+      setToken(res.bearerToken)
+      localStorage.setItem('token', res.bearerToken)
+      setIsLoggedIn(true)
+      setIsSignUpModalOpen(false)
+    } catch (err) {
+      console.error(err)
+      alert('회원가입 실패: ' + (err as Error).message)
+    }
   }
 
   // 로그인 모달 닫기
