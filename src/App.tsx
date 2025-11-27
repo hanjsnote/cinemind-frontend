@@ -5,10 +5,10 @@ import { LoginModal } from './components/LoginModal'
 import { MessageList } from './components/MessageList'
 import { ChatInput } from './components/ChatInput'
 import { ConfirmModal } from './components/ConfirmModal'
+import { SignUpModal } from './components/SignUpModal'
 import type { ChatMessage } from './types/chat'
 
 function App() {
-  // 상태는 여기에서만 관리
   const [query, setQuery] = useState('')
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
@@ -16,6 +16,14 @@ function App() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+
+  // 회원가입 모달용 상태
+  const [isSignUpModalOpen, setIsSignUpModalOpen] = useState(false)
+  const [signUpEmail, setSignUpEmail] = useState('')
+  const [signUpPassword, setSignUpPassword] = useState('')
+  const [signUpPasswordConfirm, setSignUpPasswordConfirm] = useState('')
+
+  // 응답 로딩
   const [isLoading, setIsLoading] = useState(false)
 
   const pendingTimeoutRef = useRef<number | null>(null)
@@ -105,10 +113,47 @@ function App() {
     handleCloseLoginModal()
   }
 
+  // 회원가입 제출
+  const handleSignUpSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+
+    if (
+      !signUpEmail.trim() ||
+      !signUpPassword.trim() ||
+      !signUpPasswordConfirm.trim()
+    ) {
+      console.log('이메일/비밀번호/비밀번호 확인을 모두 입력해야 합니다.')
+      return
+    }
+
+    if (signUpPassword !== signUpPasswordConfirm) {
+      console.log('비밀번호와 비밀번호 확인이 일치하지 않습니다.')
+      return
+    }
+
+    console.log('회원가입 시도:', {
+      email: signUpEmail,
+      password: signUpPassword,
+    })
+    // TODO: /api/auth/signup 호출 후 성공 시 처리
+
+    // 일단 모달만 닫고 입력값 초기화
+    handleCloseSignUpModal()
+  }
+
+  // 로그인 모달 닫기
   const handleCloseLoginModal = () => {
     setIsLoginModalOpen(false)
     setEmail('')
     setPassword('')
+  }
+
+  // 회원가입 모달 닫기
+  const handleCloseSignUpModal = () => {
+    setIsSignUpModalOpen(false)
+    setSignUpEmail('')
+    setSignUpPassword('')
+    setSignUpPasswordConfirm('')
   }
 
   const handleLogout = () => {
@@ -136,7 +181,6 @@ function App() {
         onClickLogin={() => setIsLoginModalOpen(true)}
         onClickLogout={handleLogout}
         onClearMessages={() => setIsConfirmClearOpen(true)}
-
       />
 
       {/* 로그인 모달 */}
@@ -148,6 +192,35 @@ function App() {
         onChangePassword={setPassword}
         onSubmit={handleLoginSubmit}
         onClose={handleCloseLoginModal}
+        onClickSignUp={() => {
+          // 로그인 모달 닫고 회원가입 모달 열기
+          setIsLoginModalOpen(false)
+          setIsSignUpModalOpen(true)
+        }}
+      />
+
+      {/* 회원가입 모달 */}
+      <SignUpModal
+        isOpen={isSignUpModalOpen}
+        email={signUpEmail}
+        password={signUpPassword}
+        passwordConfirm={signUpPasswordConfirm}
+        onChangeEmail={setSignUpEmail}
+        onChangePassword={setSignUpPassword}
+        onChangePasswordConfirm={setSignUpPasswordConfirm}
+        onSubmit={handleSignUpSubmit}
+        onClose={handleCloseSignUpModal}
+      />
+
+      {/* 대화 내역 삭제 확인 모달 */}
+      <ConfirmModal
+        isOpen={isConfirmClearOpen}
+        title="대화 내역 삭제"
+        message="정말로 대화 내역을 모두 삭제하시겠습니까?"
+        confirmText="삭제"
+        cancelText="취소"
+        onConfirm={handleConfirmClearMessages}
+        onCancel={handleCancelClearMessages}
       />
 
       <ConfirmModal

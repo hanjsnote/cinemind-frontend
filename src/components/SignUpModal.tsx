@@ -1,33 +1,35 @@
 import type { FormEvent } from 'react'
 
-type LoginModalProps = {
+type SignUpModalProps = {
   isOpen: boolean
   email: string
   password: string
+  passwordConfirm: string
   onChangeEmail: (value: string) => void
   onChangePassword: (value: string) => void
+  onChangePasswordConfirm: (value: string) => void
   onSubmit: (e: FormEvent<HTMLFormElement>) => void
   onClose: () => void
-  onClickSignUp: () => void
 }
 
-export function LoginModal({
+export function SignUpModal({
   isOpen,
   email,
   password,
+  passwordConfirm,
   onChangeEmail,
   onChangePassword,
+  onChangePasswordConfirm,
   onSubmit,
   onClose,
-  onClickSignUp,
-}: LoginModalProps) {
+}: SignUpModalProps) {
   if (!isOpen) return null
 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div
         className="modal"
-        onClick={(e) => e.stopPropagation()} // 모달 안 클릭은 닫히지 않게
+        onClick={(e) => e.stopPropagation()}
       >
         <button
           type="button"
@@ -37,7 +39,7 @@ export function LoginModal({
           ×
         </button>
 
-        <h2 className="modal-title">로그인</h2>
+        <h2 className="modal-title">회원가입</h2>
 
         <form className="modal-form" onSubmit={onSubmit}>
           <input
@@ -54,22 +56,18 @@ export function LoginModal({
             value={password}
             onChange={(e) => onChangePassword(e.target.value)}
           />
+          <input
+            type="password"
+            className="modal-input"
+            placeholder="Password 확인"
+            value={passwordConfirm}
+            onChange={(e) => onChangePasswordConfirm(e.target.value)}
+          />
 
-          <button type="submit" className="modal-login-button">
-            로그인
+          <button type="submit" className="modal-signup-button">
+            회원가입
           </button>
         </form>
-
-        <div className="modal-footer">
-        <span className="modal-footer-text">또는</span>
-        <button
-          type="button"
-          className="modal-detail-signup-button"
-          onClick={onClickSignUp}
-        >
-          회원가입
-        </button>
-        </div>
       </div>
     </div>
   )
