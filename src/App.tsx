@@ -1,14 +1,10 @@
-import {
-  useEffect,
-  useRef,
-  useState,
-  type FormEvent,
-} from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import './App.css'
 import { Header } from './components/Header'
 import { LoginModal } from './components/LoginModal'
 import { MessageList } from './components/MessageList'
 import { ChatInput } from './components/ChatInput'
+import { ConfirmModal } from './components/ConfirmModal'
 import type { ChatMessage } from './types/chat'
 
 function App() {
@@ -26,6 +22,8 @@ function App() {
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
 
   const hasMessages = messages.length > 0
+
+  const [isConfirmClearOpen, setIsConfirmClearOpen] = useState(false)
 
   // 메시지 추가될 때마다 스크롤 맨 아래로
   useEffect(() => {
@@ -118,6 +116,16 @@ function App() {
     setMessages([])
   }
 
+  // 대화 내역 삭제 여부
+  const handleConfirmClearMessages = () => {
+    setMessages([])
+    setIsConfirmClearOpen(false)
+  }
+
+  const handleCancelClearMessages = () => {
+    setIsConfirmClearOpen(false)
+  }
+
   return (
     <div className="app">
       {/* 상단 헤더 */}
@@ -127,7 +135,8 @@ function App() {
         onToggleMenu={() => setIsMenuOpen((prev) => !prev)}
         onClickLogin={() => setIsLoginModalOpen(true)}
         onClickLogout={handleLogout}
-        onClearMessages={() => setMessages([])}
+        onClearMessages={() => setIsConfirmClearOpen(true)}
+
       />
 
       {/* 로그인 모달 */}
@@ -139,6 +148,16 @@ function App() {
         onChangePassword={setPassword}
         onSubmit={handleLoginSubmit}
         onClose={handleCloseLoginModal}
+      />
+
+      <ConfirmModal
+        isOpen={isConfirmClearOpen}
+        title="대화 내역 삭제"
+        message="정말로 대화 내역을 모두 삭제하시겠습니까?"
+        confirmText="삭제"
+        cancelText="취소"
+        onConfirm={handleConfirmClearMessages}
+        onCancel={handleCancelClearMessages}
       />
 
       {/* 메인 영역 */}
