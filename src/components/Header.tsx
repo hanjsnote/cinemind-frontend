@@ -1,7 +1,7 @@
 type HeaderProps = {
   isLoggedIn: boolean
-  onToggleMenu: () => void
   isMenuOpen: boolean
+  onToggleMenu: () => void
   onClickLogin: () => void
   onClickLogout: () => void
   onClearMessages: () => void
