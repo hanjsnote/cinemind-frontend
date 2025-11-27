@@ -89,30 +89,6 @@ function App() {
       window.clearTimeout(pendingTimeoutRef.current)
       pendingTimeoutRef.current = null
     }
-
-    try {
-      // TODO: 나중에 여기에서 실제 백엔드 /api/chat 호출
-      await new Promise<void>((resolve) => {
-        const id = window.setTimeout(() => {
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: Date.now(),
-              role: 'assistant',
-              text: `LLM 응답 예시: "${userText}" 에 대한 답변입니다.`,
-            },
-          ])
-          pendingTimeoutRef.current = null
-          resolve()
-        }, 1500)
-
-        pendingTimeoutRef.current = id
-      })
-    } catch (err) {
-      console.error('요청 중 에러 발생:', err)
-    } finally {
-      setIsLoading(false)
-    }
   }
 
   // 응답 중지
@@ -131,11 +107,11 @@ function App() {
   )
 
   // 로그인 제출
-  const handleLoginSubmit = async(e: FormEvent<HTMLFormElement>) => {
+  const handleLoginSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
     if (!email.trim() || !password.trim()) return
-    
+
     try {
       const res = await signin({ email, password })
       setToken(res.bearerToken)
@@ -144,6 +120,11 @@ function App() {
       handleCloseLoginModal()
     } catch (err) {
       console.error(err)
+      const message =
+        err instanceof TypeError
+          ? '서버에 연결할 수 없습니다. 백엔드가 켜져 있는지 확인해주세요'
+          : (err as Error).message
+
       alert('로그인 실패: ' + (err as Error).message)
     }
   }
@@ -170,6 +151,11 @@ function App() {
       setIsSignUpModalOpen(false)
     } catch (err) {
       console.error(err)
+      const message =
+        err instanceof TypeError
+          ? '서버에 연결할 수 없습니다. 백엔드가 켜져 있는지 확인해제수요'
+          : (err as Error).message
+
       alert('회원가입 실패: ' + (err as Error).message)
     }
   }
