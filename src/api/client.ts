@@ -11,25 +11,30 @@ async function request<T>(
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   }
+
+  // 토큰 있으면 Authorization 헤더 추가
   if (options?.token) {
-    headers.Authorization = 'Bearer ${options.token}'
+    headers.Authorization = `Bearer ${options.token}`   
   }
 
-  const res = await fetch('${API_BASE_URL}${path}', {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
     method,
     headers,
-    body: body ? JSON.stringify(body) : undefined
-  }) 
+    body: body ? JSON.stringify(body) : undefined,
+  })
 
   if (!res.ok) {
-    // 에러 메시지 파싱 시도
-    let message = 'HTTP ${res.status}'
+    let message = `HTTP ${res.status}`
+
     try {
       const data = await res.json()
-      if (data.message) message = data.message
+      if ((data as any).message) {
+        message = (data as any).message
+      }
     } catch {
-      // ignore
+      // body 없는 에러면 그냥 status만 사용
     }
+
     throw new Error(message)
   }
 
@@ -37,6 +42,6 @@ async function request<T>(
 }
 
 export const apiClient = {
-  post: <T>(path: string, body?:unknown, token?: string) =>
+  post: <T>(path: string, body?: unknown, token?: string) =>
     request<T>('POST', path, body, { token }),
 }
