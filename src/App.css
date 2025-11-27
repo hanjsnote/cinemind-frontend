@@ -97,8 +97,10 @@ body {
 .app-main {
   flex: 1;
   display: flex;
-  justify-content: center; /* 가로 가운데 */
-  align-items: center;     /* 세로 가운데 */
+  justify-content: center;
+  /* 가로 가운데 */
+  align-items: center;
+  /* 세로 가운데 */
   padding: 0 24px;
 }
 
@@ -131,12 +133,15 @@ body {
 
 .modal-overlay {
   position: fixed;
-  inset: 0; /* top:0; right:0; bottom:0; left:0 */
-  background: rgba(0, 0, 0, 0.25); /* 뒷배경 반투명 */
+  inset: 0;
+  /* top:0; right:0; bottom:0; left:0 */
+  background: rgba(0, 0, 0, 0.25);
+  /* 뒷배경 반투명 */
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 100; /* 헤더/본문보다 위 */
+  z-index: 100;
+  /* 헤더/본문보다 위 */
 }
 
 .modal {
@@ -331,7 +336,7 @@ body {
   display: block;
   font-size: 24px;
   line-height: 1;
-  transform: translateY(-2px)  
+  transform: translateY(-2px)
 }
 
 /* 비활성화 상태 */
@@ -339,11 +344,13 @@ body {
   cursor: default;
   opacity: 0.6;
 }
+
 /* 회전 애니메이션 */
 @keyframes spin {
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
@@ -393,4 +400,49 @@ body {
 
 .confirm-ok-button:hover {
   background: #b71c1c;
+}
+
+.modal-footer {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.modal-footer-text {
+  font-size: 12px;
+  color: #888888;
+  text-align: center;
+}
+
+/* 회원 가입 버튼 */
+.modal-signup-button {
+  margin-top: 4px;
+  height: 40px;
+  border-radius: 999px;
+  border: none;
+  background: #000000;
+  color: #ffffff;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.modal-signup-button:hover {
+  opacity: 0.9;
+}
+
+.modal-detail-signup-button {
+  margin-top: 4px;
+  height: 40px;
+  border-radius: 999px;
+  border: 1px solid #dddddd;
+  background: #ffffff;
+  padding: 8px 18px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.modal-detail-signup-button:hover {
+  opacity: 0.9;
 }
