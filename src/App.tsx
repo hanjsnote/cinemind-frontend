@@ -118,6 +118,7 @@ function App() {
       const res = await signin({ email, password })
       setToken(res.bearerToken)
       localStorage.setItem('token', res.bearerToken)
+      setIsLoggedIn(true) // 로그인 상태
       handleCloseLoginModal()
     } catch (err) {
       console.error(err)
@@ -148,6 +149,7 @@ function App() {
       // 회원가입 후 자동 로그인 처리
       setToken(res.bearerToken)
       localStorage.setItem('token', res.bearerToken)
+      setIsLoggedIn(true)  // 회원 가입 후 자동 로그인 상태 갱신
       setIsSignUpModalOpen(false)
     } catch (err) {
       console.error(err)
