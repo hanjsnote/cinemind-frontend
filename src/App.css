@@ -446,3 +446,10 @@ body {
 .modal-detail-signup-button:hover {
   opacity: 0.9;
 }
+
+/* 응답 시간 표시 (예: 4.3 s) */
+.chat-message-time {
+  font-size: 12px;
+  color: #888888;
+  margin-bottom: 4px;
+}

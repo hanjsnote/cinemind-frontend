@@ -65,6 +65,9 @@ function App() {
 
     setIsLoading(true)
 
+    // 응답 시간 측정 시작
+    const start = performance.now()
+
     try {
       const res = await sendChat(
         {
@@ -73,10 +76,18 @@ function App() {
         },
         token ?? undefined // 로그인 유저면 JWT 전달
       )
+      
+      const end = performance.now()
+      const elapsedSeconds = Math.round((end - start) / 100) / 10 // 소수 1자리(4.3s)
 
+      // 어시스턴트 매시지 + 응답 시간 저장
       setMessages((prev) => [
         ...prev,
-        { id: Date.now() + 1, role: 'assistant', text: res.answer },
+        { id: Date.now() + 1,
+          role: 'assistant',
+          text: res.answer,
+          elapsedSeconds, 
+        },
       ])
     } catch (err) {
       console.error(err)
