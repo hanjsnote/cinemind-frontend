@@ -11,45 +11,69 @@ import { signin, signup } from './api/auth'
 import { sendChat } from './api/chat'
 
 function App() {
-  const [query, setQuery] = useState('')
+  // ===== 인증 / 로그인 관련 상태 =====
+
+  // JWT 토큰 (없으면 null) - localStorage 초기값을 읽어옴
+  const [token, setToken] = useState<string | null>(
+    () => localStorage.getItem('token')
+  )
+
+  // 토큰 존재 여부로 로그인 상태 계산 (따로 set할 필요 없음)
+  const isLoggedIn = !!token
+
+  // 상단 ... 메뉴 열림 여부
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+
+  // 로그인 모달 열림 여부
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
-  // 로그인 여부도 토큰 존재 여부로 초기화
-  const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('token'))
-  const [messages, setMessages] = useState<ChatMessage[]>([])
+
+  // 회원가입 모달 열림 여부
+  const [isSignUpModalOpen, setIsSignUpModalOpen] = useState(false)
+
+  // 로그인 폼 입력값
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
 
-  // 회원가입 모달용 상태
-  const [isSignUpModalOpen, setIsSignUpModalOpen] = useState(false)
+  // 회원가입 폼 입력값
   const [signUpEmail, setSignUpEmail] = useState('')
   const [signUpPassword, setSignUpPassword] = useState('')
   const [signUpPasswordConfirm, setSignUpPasswordConfirm] = useState('')
 
-  // 응답 로딩
+  // ===== 채팅 관련 상태 =====
+
+  // 입력창에 적고 있는 텍스트
+  const [query, setQuery] = useState('')
+
+  // 대화 메시지 리스트
+  const [messages, setMessages] = useState<ChatMessage[]>([])
+
+  // 챗봇 응답 로딩 여부 (스피너 / 정지 버튼 표시용)
   const [isLoading, setIsLoading] = useState(false)
 
-  const pendingTimeoutRef = useRef<number | null>(null)
+  // 스크롤을 마지막 메시지로 내리기 위한 ref
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
 
-  const hasMessages = messages.length > 0
-
+  // "대화 내역 삭제" 확인 모달 열림 여부
   const [isConfirmClearOpen, setIsConfirmClearOpen] = useState(false)
 
-  // 메시지 추가될 때마다 스크롤 맨 아래로
+  // 한 번이라도 메시지가 있으면 true → 레이아웃을 chat 모드로
+  const hasMessages = messages.length > 0
+
+  // 비로그인 게스트 전용 sessionId (컴포넌트 최초 마운트 시 한 번만 생성)
+  const [sessionId] = useState(() => 'guest-' + crypto.randomUUID())
+
+  // ===== 공통 효과 =====
+
+  // 메시지가 추가될 때마다 스크롤을 맨 아래로 이동
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
   }, [messages])
 
-  // 게스트용 sessionId
-  const [sessionId] = useState(() => {
-    // 비로그인 게스트용 임시 아이디
-    return 'guest-' + crypto.randomUUID()
-  })
+  // ===== 핸들러들 =====
 
-  // 채팅 제출
+  // 채팅 전송
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!query.trim() || isLoading) return
@@ -57,7 +81,7 @@ function App() {
     const userText = query.trim()
     setQuery('')
 
-    // 유저 메시지 추가
+    // 1) 사용자 메시지 추가
     setMessages((prev) => [
       ...prev,
       { id: Date.now(), role: 'user', text: userText },
@@ -65,28 +89,31 @@ function App() {
 
     setIsLoading(true)
 
-    // 응답 시간 측정 시작
+    // 2) 응답 시간 측정 시작
     const start = performance.now()
 
     try {
+      // 로그인 상태면 JWT 기반(user_id)으로, 비로그인 상태면 sessionId 기반으로 메모리 분리
       const res = await sendChat(
         {
           userQuery: userText,
           sessionId: isLoggedIn ? undefined : sessionId,
         },
-        token ?? undefined // 로그인 유저면 JWT 전달
+        token ?? undefined // 로그인 유저면 Authorization 헤더에 토큰 전달
       )
-      
-      const end = performance.now()
-      const elapsedSeconds = Math.round((end - start) / 100) / 10 // 소수 1자리(4.3s)
 
-      // 어시스턴트 매시지 + 응답 시간 저장
+      const end = performance.now()
+      // 소수 1자리까지(예: 4.3s)
+      const elapsedSeconds = Math.round((end - start) / 100) / 10
+
+      // 3) 챗봇 응답 메시지 + 응답 시간 저장
       setMessages((prev) => [
         ...prev,
-        { id: Date.now() + 1,
+        {
+          id: Date.now() + 1,
           role: 'assistant',
           text: res.answer,
-          elapsedSeconds, 
+          elapsedSeconds,
         },
       ])
     } catch (err) {
@@ -95,54 +122,40 @@ function App() {
     } finally {
       setIsLoading(false)
     }
-
-    // 기존 타이머 있으면 정리
-    if (pendingTimeoutRef.current !== null) {
-      window.clearTimeout(pendingTimeoutRef.current)
-      pendingTimeoutRef.current = null
-    }
   }
 
-  // 응답 중지
+  // 응답 중지 버튼 (현재는 로딩 UI만 꺼줌)
   const handleStopResponse = () => {
     if (!isLoading) return
-
-    if (pendingTimeoutRef.current !== null) {
-      window.clearTimeout(pendingTimeoutRef.current)
-      pendingTimeoutRef.current = null
-    }
     setIsLoading(false)
   }
 
-  // 토큰은 localStorage에서 초기값 읽기
-  const [token, setToken] = useState<string | null>(
-    () => localStorage.getItem('token')
-  )
-
-  // 로그인 제출
+  // 로그인 폼 제출
   const handleLoginSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-
     if (!email.trim() || !password.trim()) return
 
     try {
       const res = await signin({ email, password })
+
+      // 토큰 상태 + localStorage 둘 다 저장
       setToken(res.bearerToken)
       localStorage.setItem('token', res.bearerToken)
-      setIsLoggedIn(true) // 로그인 상태
+
+      // 로그인 모달 닫기 + 폼 초기화
       handleCloseLoginModal()
     } catch (err) {
       console.error(err)
       const message =
         err instanceof TypeError
-          ? '서버에 연결할 수 없습니다. 백엔드가 켜져 있는지 확인해주세요'
+          ? '서버에 연결할 수 없습니다. 백엔드가 켜져 있는지 확인해주세요.'
           : (err as Error).message
 
-      alert('로그인 실패: ' + (err as Error).message)
+      alert('로그인 실패: ' + message)
     }
   }
 
-  // 회원가입 제출
+  // 회원가입 폼 제출
   const handleSignUpSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
@@ -157,30 +170,30 @@ function App() {
         email: signUpEmail,
         password: signUpPassword,
       })
-      // 회원가입 후 자동 로그인 처리
+
+      // 회원가입 후 자동 로그인
       setToken(res.bearerToken)
       localStorage.setItem('token', res.bearerToken)
-      setIsLoggedIn(true)  // 회원 가입 후 자동 로그인 상태 갱신
       setIsSignUpModalOpen(false)
     } catch (err) {
       console.error(err)
       const message =
         err instanceof TypeError
-          ? '서버에 연결할 수 없습니다. 백엔드가 켜져 있는지 확인해제수요'
+          ? '서버에 연결할 수 없습니다. 백엔드가 켜져 있는지 확인해주세요.'
           : (err as Error).message
 
-      alert('회원가입 실패: ' + (err as Error).message)
+      alert('회원가입 실패: ' + message)
     }
   }
 
-  // 로그인 모달 닫기
+  // 로그인 모달 닫기 + 입력값 초기화
   const handleCloseLoginModal = () => {
     setIsLoginModalOpen(false)
     setEmail('')
     setPassword('')
   }
 
-  // 회원가입 모달 닫기
+  // 회원가입 모달 닫기 + 입력값 초기화
   const handleCloseSignUpModal = () => {
     setIsSignUpModalOpen(false)
     setSignUpEmail('')
@@ -188,26 +201,29 @@ function App() {
     setSignUpPasswordConfirm('')
   }
 
-  // 로그아웃 토큰 삭제
+  // 로그아웃: 토큰 삭제 + 대화 초기화
   const handleLogout = () => {
-    setIsLoggedIn(false)
+    setToken(null)
     localStorage.removeItem('token')
     setMessages([])
   }
 
-  // 대화 내역 삭제 여부
+  // "대화 내역 삭제" 모달에서 삭제 확정
   const handleConfirmClearMessages = () => {
     setMessages([])
     setIsConfirmClearOpen(false)
   }
 
+  // "대화 내역 삭제" 모달에서 취소
   const handleCancelClearMessages = () => {
     setIsConfirmClearOpen(false)
   }
 
+  // ===== 렌더링 =====
+
   return (
     <div className="app">
-      {/* 상단 헤더 */}
+      {/* 상단 헤더 (... 메뉴 + 로그인/로그아웃) */}
       <Header
         isLoggedIn={isLoggedIn}
         isMenuOpen={isMenuOpen}
@@ -227,7 +243,7 @@ function App() {
         onSubmit={handleLoginSubmit}
         onClose={handleCloseLoginModal}
         onClickSignUp={() => {
-          // 로그인 모달 닫고 회원가입 모달 열기
+          // 로그인 모달 닫고 → 회원가입 모달 열기
           setIsLoginModalOpen(false)
           setIsSignUpModalOpen(true)
         }}
@@ -257,17 +273,7 @@ function App() {
         onCancel={handleCancelClearMessages}
       />
 
-      <ConfirmModal
-        isOpen={isConfirmClearOpen}
-        title="대화 내역 삭제"
-        message="정말로 대화 내역을 모두 삭제하시겠습니까?"
-        confirmText="삭제"
-        cancelText="취소"
-        onConfirm={handleConfirmClearMessages}
-        onCancel={handleCancelClearMessages}
-      />
-
-      {/* 메인 영역 */}
+      {/* 메인 영역 (대화 + 입력창) */}
       <main className={`app-main ${hasMessages ? 'chat-mode' : ''}`}>
         {hasMessages ? (
           <div className="chat-layout">
