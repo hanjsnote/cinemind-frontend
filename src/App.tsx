@@ -14,7 +14,8 @@ function App() {
   const [query, setQuery] = useState('')
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  // 로그인 여부도 토큰 존재 여부로 초기화
+  const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('token'))
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -102,6 +103,7 @@ function App() {
     setIsLoading(false)
   }
 
+  // 토큰은 localStorage에서 초기값 읽기
   const [token, setToken] = useState<string | null>(
     () => localStorage.getItem('token')
   )
@@ -116,7 +118,6 @@ function App() {
       const res = await signin({ email, password })
       setToken(res.bearerToken)
       localStorage.setItem('token', res.bearerToken)
-      setIsLoggedIn(true)
       handleCloseLoginModal()
     } catch (err) {
       console.error(err)
@@ -147,7 +148,6 @@ function App() {
       // 회원가입 후 자동 로그인 처리
       setToken(res.bearerToken)
       localStorage.setItem('token', res.bearerToken)
-      setIsLoggedIn(true)
       setIsSignUpModalOpen(false)
     } catch (err) {
       console.error(err)
@@ -175,8 +175,10 @@ function App() {
     setSignUpPasswordConfirm('')
   }
 
+  // 로그아웃 토큰 삭제
   const handleLogout = () => {
     setIsLoggedIn(false)
+    localStorage.removeItem('token')
     setMessages([])
   }
 
