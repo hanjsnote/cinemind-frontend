@@ -12,12 +12,18 @@ export function MessageList({ messages, messagesEndRef }: MessageListProps) {
       {messages.map((msg) => (
         <div
           key={msg.id}
-          className={`chat-message ${
-            msg.role === 'user'
+          className={`chat-message ${msg.role === 'user'
               ? 'chat-message-user'
               : 'chat-message-assistant'
-          }`}
+            }`}
         >
+          {/* assistant 메시지일 때만 시간 표시 */}
+          {msg.role === 'assistant' && msg.elapsedSeconds != null && (
+            <div className="chat-message-time">
+              {msg.elapsedSeconds.toFixed(1)} s
+            </div>
+          )}
+
           <div className="chat-message-bubble">{msg.text}</div>
         </div>
       ))}
