@@ -14,7 +14,7 @@ async function request<T>(
 
   // 토큰 있으면 Authorization 헤더 추가
   if (options?.token) {
-    headers.Authorization = `Bearer ${options.token}`   
+    headers.Authorization = `${options.token}`   
   }
 
   const res = await fetch(`${API_BASE_URL}${path}`, {
