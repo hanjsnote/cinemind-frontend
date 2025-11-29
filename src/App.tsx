@@ -9,6 +9,8 @@ import { SignUpModal } from './components/SignUpModal'
 import type { ChatMessage } from './types/chat'
 import { signin, signup } from './api/auth'
 import { sendChat } from './api/chat'
+import type { ChatLogResponse } from './types/api'
+import { fetchChatLogs } from './api/chat'
 
 function App() {
   // ===== 인증 / 로그인 관련 상태 =====
@@ -70,6 +72,19 @@ function App() {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
   }, [messages])
+
+  // 로그인된 유저의 지난 대화 불러오기
+  useEffect(() => {
+    if (!token) return            // 비로그인/게스트면 아무것도 안 함
+
+    fetchChatLogs(token)
+      .then((logs) => {
+        setMessages(mapLogsToMessages(logs))
+      })
+      .catch((e) => {
+        console.error('초기 대화 로그 로드 실패', e)
+      })
+  }, [token])
 
   // ===== 핸들러들 =====
 
@@ -138,12 +153,26 @@ function App() {
     try {
       const res = await signin({ email, password })
 
+      const bearerToken = res.bearerToken
+
       // 토큰 상태 + localStorage 둘 다 저장
-      setToken(res.bearerToken)
-      localStorage.setItem('token', res.bearerToken)
+      setToken(bearerToken)
+      localStorage.setItem('token', bearerToken)
 
       // 로그인 모달 닫기 + 폼 초기화
       handleCloseLoginModal()
+
+      // 서버 대화로그 가져오기 
+      try {
+        const logs = await fetchChatLogs(bearerToken)
+        const historyMessages = mapLogsToMessages(logs)
+
+        // 게스트로 주고받은 메시지는 버리고 로그인 유저의 DB 히스토리로 messages를 교체
+        setMessages(historyMessages)
+      } catch (historyError) {
+        console.error('대화 로그 불러오기 실패', historyError)
+        // 실패하더라도 로그인 자체는 유지
+      }
     } catch (err) {
       console.error(err)
       const message =
@@ -306,3 +335,19 @@ function App() {
 }
 
 export default App
+
+// 백엔드 ChatLogResponse -> 프론트 ChatMessage 변환 함수
+function mapLogsToMessages(logs: ChatLogResponse[]): ChatMessage[] {
+  return logs.map((log, index) => {
+    const role = log.role === 'USER' ? 'user' : 'assistant'
+
+    // createdAt 을 숫자로 바꿔서 id로 써도 되고, 단순 index 써도 됨
+    const id = Date.parse(log.createdAt) || index
+
+    return {
+      id,
+      role,
+      text: log.content,
+    }
+  })
+}
