@@ -11,6 +11,7 @@ import { signin, signup } from './api/auth'
 import { sendChat } from './api/chat'
 import type { ChatLogResponse } from './types/api'
 import { fetchChatLogs } from './api/chat'
+import { useTypewriter } from './hooks/useTypewriter'
 
 function App() {
   // ===== 인증 / 로그인 관련 상태 =====
@@ -63,6 +64,9 @@ function App() {
 
   // 비로그인 게스트 전용 sessionId (컴포넌트 최초 마운트 시 한 번만 생성)
   const [sessionId] = useState(() => 'guest-' + crypto.randomUUID())
+
+  // 챗봇 응답 타자 효과
+  const { startTypewriter } = useTypewriter(setMessages, setIsLoading)
 
   // ===== 공통 효과 =====
 
@@ -121,22 +125,26 @@ function App() {
       // 소수 1자리까지(예: 4.3s)
       const elapsedSeconds = Math.round((end - start) / 100) / 10
 
+      const assistantId = Date.now() + 1
+
       // 3) 챗봇 응답 메시지 + 응답 시간 저장
       setMessages((prev) => [
         ...prev,
         {
-          id: Date.now() + 1,
+          id: assistantId,
           role: 'assistant',
-          text: res.answer,
+          text: '',
           elapsedSeconds,
         },
       ])
+
+      // 훅이 제공하는 함수 호출
+      startTypewriter(assistantId, res.answer)
     } catch (err) {
       console.error(err)
       alert('챗봇 요청 실패: ' + (err as Error).message)
-    } finally {
       setIsLoading(false)
-    }
+    } 
   }
 
   // 응답 중지 버튼 (현재는 로딩 UI만 꺼줌)
