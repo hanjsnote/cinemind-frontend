@@ -30,3 +30,12 @@ export type ChatResponse = {
   answer: string
   sources: string[]
 }
+
+// --- Chat Logs (history) ---
+export type ChatLogResponse = {
+  role: 'USER' | 'ASSISTANT'
+  content: string
+  createdAt: string
+  queryKeywords: string[]
+  relatedMovieCodes: string[]
+}
