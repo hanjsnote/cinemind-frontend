@@ -12,6 +12,7 @@ import { sendChat } from './api/chat'
 import type { ChatLogResponse } from './types/api'
 import { fetchChatLogs } from './api/chat'
 import { useTypewriter } from './hooks/useTypewriter'
+import { safeRandomUUID } from './utils/safeRandomUUID'
 
 function App() {
   // ===== 인증 / 로그인 관련 상태 =====
@@ -63,7 +64,7 @@ function App() {
   const hasMessages = messages.length > 0
 
   // 비로그인 게스트 전용 sessionId (컴포넌트 최초 마운트 시 한 번만 생성)
-  const [sessionId] = useState(() => 'guest-' + crypto.randomUUID())
+  const [sessionId] = useState(() => 'guest-' + safeRandomUUID())
 
   // 챗봇 응답 타자 효과
   const { startTypewriter } = useTypewriter(setMessages, setIsLoading)
