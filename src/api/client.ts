@@ -1,4 +1,9 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
+// dev(로컬)에서는 .env 의 VITE_API_BASE_URL 사용
+// prod(빌드/EC2/nginx)에서는 same-origin(빈 문자열) 사용 → /api/... 로 요청
+const API_BASE_URL =
+  import.meta.env.PROD
+    ? ''                                    // 배포: nginx가 /api/를 8080으로 프록시
+    : (import.meta.env.VITE_API_BASE_URL ?? '') // 로컬 개발: http://localhost:8080
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE'
 
