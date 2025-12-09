@@ -5,7 +5,7 @@ type JwtPayload = {
   userRole?: string
 }
 
-function parseJwt(bearerToken: string | null): JwtPayload | null {
+export function parseJwt(bearerToken: string | null): JwtPayload | null {
   if (!bearerToken) return null
 
   // 백엔드에서 "Bearer xxx.yyy.zzz" 형태로 내려오니까 접두어 제거
@@ -30,7 +30,7 @@ function parseJwt(bearerToken: string | null): JwtPayload | null {
   }
 }
 
-function isAdminToken(bearerToken: string | null): boolean {
+export function isAdminToken(bearerToken: string | null): boolean {
   const payload = parseJwt(bearerToken)
   return payload?.userRole === 'ROLE_ADMIN'
 }

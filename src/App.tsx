@@ -13,6 +13,7 @@ import type { ChatLogResponse } from './types/api'
 import { fetchChatLogs } from './api/chat'
 import { useTypewriter } from './hooks/useTypewriter'
 import { safeRandomUUID } from './utils/safeRandomUUID'
+import { isAdminToken } from './utils/jwt'
 
 function App() {
   // ===== 인증 / 로그인 관련 상태 =====
@@ -24,6 +25,9 @@ function App() {
 
   // 토큰 존재 여부로 로그인 상태 계산 (따로 set할 필요 없음)
   const isLoggedIn = !!token
+
+  // 관리자 여부
+  const [isAdmin, setIsAdmin] = useState(false)
 
   // 상단 ... 메뉴 열림 여부
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -70,6 +74,11 @@ function App() {
   const { startTypewriter } = useTypewriter(setMessages, setIsLoading)
 
   // ===== 공통 효과 =====
+
+  // 관리자 여부 판단
+  useEffect(() => {
+    setIsAdmin(isAdminToken(token))
+  }, [token])
 
   // 메시지가 추가될 때마다 스크롤을 맨 아래로 이동
   useEffect(() => {
