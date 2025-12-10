@@ -5,6 +5,8 @@ type HeaderProps = {
   onClickLogin: () => void
   onClickLogout: () => void
   onClearMessages: () => void
+  isAdmin?: boolean
+  onClickAdminTools?: () => void
 }
 
 export function Header({
@@ -14,6 +16,8 @@ export function Header({
   onClickLogin,
   onClickLogout,
   onClearMessages,
+  isAdmin,
+  onClickAdminTools,
 }: HeaderProps) {
   return (
     <header className="app-header">
@@ -40,6 +44,16 @@ export function Header({
 
             {isLoggedIn && (
               <>
+                {/* 관리자 계정일 떄만 노출 */}
+                {isAdmin && onClickAdminTools && (
+                  <button
+                    type="button"
+                    className="menu-item"
+                    onClick={onClickAdminTools}
+                  >
+                    관리자 도구
+                  </button>
+                )}
                 <button
                   type="button"
                   className="menu-item"
