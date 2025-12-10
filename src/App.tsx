@@ -6,6 +6,7 @@ import { MessageList } from './components/MessageList'
 import { ChatInput } from './components/ChatInput'
 import { ConfirmModal } from './components/ConfirmModal'
 import { SignUpModal } from './components/SignUpModal'
+import { AdminModal } from './components/AdminModal'
 import type { ChatMessage } from './types/chat'
 import { signin, signup } from './api/auth'
 import { sendChat } from './api/chat'
@@ -14,6 +15,7 @@ import { fetchChatLogs } from './api/chat'
 import { useTypewriter } from './hooks/useTypewriter'
 import { safeRandomUUID } from './utils/safeRandomUUID'
 import { isAdminToken } from './utils/jwt'
+import { rebuildAllIndex, incrementalIndex } from './api/indexing'
 
 function App() {
   // ===== 인증 / 로그인 관련 상태 =====
@@ -37,6 +39,12 @@ function App() {
 
   // 회원가입 모달 열림 여부
   const [isSignUpModalOpen, setIsSignUpModalOpen] = useState(false)
+
+  // 관리자 모달/확인 모달
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false)
+  const [isConfirmRebuildOpen, setIsConfirmRebuildOpen] = useState(false)
+  const [isRagLoading, setIsRagLoading] = useState(false)
+  const [ragMessage, setRagMessage] = useState<string | null>(null)
 
   // 로그인 폼 입력값
   const [email, setEmail] = useState('')
@@ -79,6 +87,45 @@ function App() {
   useEffect(() => {
     setIsAdmin(isAdminToken(token))
   }, [token])
+
+  // 관리자 모달/확인 모달
+  const handleOpenAdminModal = () => {
+    setRagMessage(null)
+    setIsAdminModalOpen(true)
+  }
+
+  const handleClickRebuildAll = () => {
+    setIsConfirmRebuildOpen(true)
+  }
+
+  const handleConfirmRebuildAll = async () => {
+    if (!token) return
+    setIsConfirmRebuildOpen(false)
+    setIsRagLoading(true)
+    try {
+      const msg = await rebuildAllIndex(token)
+      setRagMessage(msg)
+      alert(msg)
+    } finally {
+      setIsRagLoading(false)
+    }
+  }
+
+  const handleCancelRebuildAll = () => {
+    setIsConfirmRebuildOpen(false)
+  }
+
+  const handleClickIncremental = async () => {
+    if (!token) return
+    setIsRagLoading(true)
+    try {
+      const msg = await incrementalIndex(token)
+      setRagMessage(msg)
+      alert(msg)
+    } finally {
+      setIsRagLoading(false)
+    }
+  }
 
   // 메시지가 추가될 때마다 스크롤을 맨 아래로 이동
   useEffect(() => {
@@ -154,7 +201,7 @@ function App() {
       console.error(err)
       alert('챗봇 요청 실패: ' + (err as Error).message)
       setIsLoading(false)
-    } 
+    }
   }
 
   // 응답 중지 버튼 (현재는 로딩 UI만 꺼줌)
@@ -278,6 +325,8 @@ function App() {
         onClickLogin={() => setIsLoginModalOpen(true)}
         onClickLogout={handleLogout}
         onClearMessages={() => setIsConfirmClearOpen(true)}
+        isAdmin={isAdmin}
+        onClickAdminTools={handleOpenAdminModal}
       />
 
       {/* 로그인 모달 */}
@@ -318,6 +367,29 @@ function App() {
         cancelText="취소"
         onConfirm={handleConfirmClearMessages}
         onCancel={handleCancelClearMessages}
+      />
+
+      {/* 관리자 도구 모달 (ROLE_ADMIN에게만 노출) */}
+      {isAdmin && (
+        <AdminModal
+          isOpen={isAdminModalOpen}
+          onClose={() => setIsAdminModalOpen(false)}
+          onClickRebuildAll={handleClickRebuildAll}
+          onClickIncremental={handleClickIncremental}
+          isLoading={isRagLoading}
+          lastMessage={ragMessage}
+        />
+      )}
+
+      {/* 전체 인덱싱 Confirm 모달 */}
+      <ConfirmModal
+        isOpen={isConfirmRebuildOpen}
+        title="전체 인덱싱"
+        message="정말 전체 인덱싱 작업을 수행하시겠습니까?"
+        confirmText="예"
+        cancelText="아니오"
+        onConfirm={handleConfirmRebuildAll}
+        onCancel={handleCancelRebuildAll}
       />
 
       {/* 메인 영역 (대화 + 입력창) */}
