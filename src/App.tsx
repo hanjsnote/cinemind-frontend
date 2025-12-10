@@ -101,6 +101,7 @@ function App() {
   const handleConfirmRebuildAll = async () => {
     if (!token) return
     setIsConfirmRebuildOpen(false)
+    setRagMessage(null)
     setIsRagLoading(true)
     try {
       const msg = await rebuildAllIndex(token)
@@ -116,6 +117,7 @@ function App() {
 
   const handleClickIncremental = async () => {
     if (!token) return
+    setRagMessage(null)
     setIsRagLoading(true)
     try {
       const msg = await incrementalIndex(token)
