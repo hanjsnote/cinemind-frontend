@@ -105,7 +105,6 @@ function App() {
     try {
       const msg = await rebuildAllIndex(token)
       setRagMessage(msg)
-      alert(msg)
     } finally {
       setIsRagLoading(false)
     }
@@ -121,7 +120,6 @@ function App() {
     try {
       const msg = await incrementalIndex(token)
       setRagMessage(msg)
-      alert(msg)
     } finally {
       setIsRagLoading(false)
     }
