@@ -52,6 +52,12 @@ export function AdminModal({
             신규 영화 인덱싱
           </button>
 
+          {isLoading && (
+            <p className="modal-footer-text">
+              잠시만 기다려 주세요. 인덱싱 작업 중입니다...
+            </p>
+          )}
+          {/* 작업이 끝난 후 백엔드에서 온 메시지 */}
           {lastMessage && (
             <p className="modal-footer-text">{lastMessage}</p>
           )}
