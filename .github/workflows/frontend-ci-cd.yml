@@ -3,8 +3,11 @@ name: Frontend CI/CD
 on:
   push:
     branches: [ main, dev ]
+  pull_request:
+    branches: [ main, dev ]
 
 jobs:
+  # ===== 1. CI: 빌드 (GitHub-hosted Runner) =====
   build:
     runs-on: ubuntu-latest
 
@@ -21,3 +24,43 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      # dist 폴더를 아티팩트로 업로드
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: dist
+          retention-days: 1
+
+  # ===== 2. CD: EC2 배포 (Self-hosted Runner) =====
+  deploy:
+    name: Deploy to EC2 (Nginx)
+    runs-on: [self-hosted, linux]   
+    needs: build                    
+
+    # dev/main에 push 될 때만 자동 배포
+    if: >
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main')
+
+    steps:
+      # 1) dist 아티팩트 다운로드
+      - name: Download dist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: /tmp/frontend-dist
+
+      # 2) Nginx 루트로 복사 + reload
+      - name: Deploy to Nginx
+        run: |
+          # 기존 정적 파일 삭제
+          sudo rm -rf /var/www/cinemind-frontend/*
+          sudo mkdir -p /var/www/cinemind-frontend
+
+          # 새 dist 파일 복사
+          sudo cp -r /tmp/frontend-dist/* /var/www/cinemind-frontend/
+
+          # Nginx 설정 다시 로드
+          sudo systemctl reload nginx
